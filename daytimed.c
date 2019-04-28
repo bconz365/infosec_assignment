@@ -25,11 +25,12 @@ int main(int argc , char *argv[])
 {   
 
     int opt = TRUE;   
-    //socklen_t sockaddr_len;
+
     int master_socket , addrlen , new_socket , client_socket[25] ,  
           max_clients = 25 , activity, i , valread , sd;   
     int max_sd;   
     struct sockaddr_in address;   
+ 
     
     
     char buffer[1024];  //words wont exceed 1024 bytes
@@ -38,7 +39,10 @@ int main(int argc , char *argv[])
     fd_set readfds;   
          
     //a message  
-    char *message = "CRI Server v1\n";   
+    time_t t = time(NULL);
+    struct tm *tm = localtime(&t);
+    char *message = "";   
+    strftime(message, sizeof(message), "%c", tm);
      
     //initialise all client_socket[] to 0 so not checked  
     for (i = 0; i < max_clients; i++)   
@@ -62,7 +66,7 @@ int main(int argc , char *argv[])
         exit(EXIT_FAILURE);   
     }   
     
-    int port = 7;
+    int port = 13;
     address.sin_family = AF_INET;   
     address.sin_addr.s_addr = INADDR_ANY;   
     address.sin_port = htons(port);   
@@ -118,7 +122,7 @@ int main(int argc , char *argv[])
         //wait for an activity on one of the sockets , timeout is NULL ,  
         //so wait indefinitely  
         activity = select( max_sd + 1 , &readfds , NULL , NULL , NULL);   
-    
+  
              
         //If something happened on the master socket ,  
         //then its an incoming connection  
@@ -136,7 +140,15 @@ int main(int argc , char *argv[])
                   "\n" , new_socket , inet_ntoa(address.sin_addr) , ntohs 
                   (address.sin_port));   
            
-            
+            //send new connection greeting message  
+            if( send(new_socket, message, strlen(message), 0) != strlen(message) )   
+            {   
+                perror("send");   
+            } else {                 
+                puts("Welcome message sent successfully");
+                close(new_socket);
+                break;
+            }
                  
             //add new socket to array of sockets  
             for (i = 0; i < max_clients; i++)   
@@ -156,7 +168,6 @@ int main(int argc , char *argv[])
         for (i = 0; i < max_clients; i++)   
         {   
             sd = client_socket[i];
-            
                
                  
             if (FD_ISSET( sd , &readfds))   
